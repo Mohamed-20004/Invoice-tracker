@@ -1,6 +1,6 @@
 # Invoice Tracker — UK Plumbing Ltd business tool
 
-Single-admin app: invoice builder + PDF export, Starling Bank payment auto-matching, pricing calculator. See SPEC.md for the full build spec.
+Single-admin app for HH Plumbing & Gas LTD: invoice builder + PDF export, Starling Bank payment auto-matching. See SPEC.md for the full build spec. The PDF layout follows the company's Word invoice template (black header band, yellow #FFCE07 accents, Arial); the logo is `public/logo.png`, embedded as a data URI at render time.
 
 ## Version pins (do not mix syntaxes across major versions)
 

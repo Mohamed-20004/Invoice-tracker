@@ -1,16 +1,16 @@
 # SPEC — UK Plumbing Ltd Business Tool
 
-A self-hosted business tool for a one-person London plumbing limited company: build HMRC-compliant invoices, export them as PDFs, auto-mark them paid from incoming Starling Bank transfers, and quote jobs with an editable pricing calculator.
+A self-hosted business tool for HH Plumbing & Gas LTD (a one-person London plumbing limited company): build HMRC-compliant invoices, export them as PDFs styled after the company's Word invoice template, and auto-mark them paid from incoming Starling Bank transfers.
 
 ## 1. Overview & non-goals
 
-**In scope:** single-admin login; customer + invoice CRUD with a toggleable line-item builder; sequential invoice numbering; VAT (20%, toggleable for non-VAT-registered); A4 PDF export via Playwright/Chromium; Starling feed-item webhook receiver with signature verification, payment auto-matching, and a manual review queue; a payments backfill/sync via the Starling REST API; a pricing calculator seeded with editable London-market defaults; Railway deployment via Dockerfile.
+**In scope:** single-admin login; customer + invoice CRUD with a toggleable line-item builder; sequential invoice numbering; VAT (20%, toggleable for non-VAT-registered); A4 PDF export via Playwright/Chromium; Starling feed-item webhook receiver with signature verification, payment auto-matching, and a manual review queue; a payments backfill/sync via the Starling REST API; Railway deployment via Dockerfile.
 
-**Non-goals:** multi-user auth or roles; Making Tax Digital / HMRC filing; emailing invoices; stored/immutable PDF archives (regenerate on demand — revisit if audit copies are required); payments out / expenses; multi-currency (GBP only); mobile app.
+**Non-goals:** pricing calculator (the owner prices jobs manually); multi-user auth or roles; Making Tax Digital / HMRC filing; emailing invoices; stored/immutable PDF archives (regenerate on demand — revisit if audit copies are required); payments out / expenses; multi-currency (GBP only); mobile app.
 
 ## 2. Data model (Prisma, PostgreSQL)
 
-- **Settings** (single row, id=1): registered company name, company number, registered office address, place of registration, VAT-registered flag + VAT number, contact email/phone, bank account name / sort code / account number, payment terms days, VAT rate %, `nextInvoiceNumber`, pricing defaults (call-out fee, weekday hourly rate, out-of-hours hourly rate, day rate, billing increment minutes, materials markup %) — all money in pence.
+- **Settings** (single row, id=1): registered company name, company number, registered office address, place of registration, VAT-registered flag + VAT number, contact email/phone, website, bank account name / sort code / account number, payment terms days, VAT rate %, `nextInvoiceNumber`. Seeded with the company's real details from its invoice template (numbering continues from INV-0059).
 - **Customer**: name, email?, phone?, address lines.
 - **Invoice**: sequential `number` (unique int), status `DRAFT | SENT | PAID | VOID`, customer relation, `jobAddress` (used for payment matching), issue/due/supply dates, snapshot of VAT registration + rate, notes; has many LineItems and Payments.
 - **LineItem**: position, description, quantity (float, e.g. 1.5 h), `unitPricePence`, `included` flag (excluded rows are kept but don't count).
@@ -25,7 +25,6 @@ A self-hosted business tool for a one-person London plumbing limited company: bu
 | `/` | dashboard: outstanding, paid-this-month, review-queue count, recent invoices |
 | `/invoices`, `/invoices/new`, `/invoices/[id]` | list, builder, detail (with edit + PDF link) |
 | `/customers` | customer list + create/edit |
-| `/pricing` | job cost calculator + editable rate config |
 | `/payments` | payment feed + "Sync from Starling" backfill |
 | `/review-queue` | unmatched payments → assign to invoice or ignore |
 | `/settings` | company / VAT / bank details |
@@ -54,21 +53,17 @@ A self-hosted business tool for a one-person London plumbing limited company: bu
 
 - Invoice rendered to a self-contained HTML string (inline print CSS, `@page { size: A4 }`, mm units, `break-inside: avoid` on totals, real selectable text) and printed with Playwright `page.pdf({ format: 'A4', printBackground: true })` inside the API route.
 - Regenerated on demand; nothing persisted.
-- Template: logo/company block left, invoice meta right; Bill To; semantic line-item table; subtotal / VAT 20% / total block; footer with bank details and *"Please quote INV-#### as your payment reference"* (this drives auto-matching). Company number, registered office, and place of registration in the footer (Companies Act 2006); VAT number shown only when VAT-registered.
+- Layout follows the company's Word invoice template: full-width black header band (logo from `public/logo.png` embedded as a data URI, company block with VAT number, oversized yellow #FFCE07 "INVOICE" + number), yellow accent strip, Invoice/Due date boxes (grey #F5F5F5), BILL TO / SITE ADDRESS columns (site address = `jobAddress`), items table (Description / Unit Price / Qty / Amount "(excl. VAT)") with black header and zebra rows, totals with a yellow TOTAL DUE row, NOTES panel (*"Please quote INV-#### as your payment reference"* — this drives auto-matching) beside a grey PAYMENT DETAILS panel (name / account no / sort code), and a centred "Thank you for choosing…" footer with the website. Arial throughout. A small statutory Companies Act line (company number, registered office, place of registration) renders when a company number is set; VAT elements only when VAT-registered.
 
 ## 7. Invoice builder UI
 
 Client component: rows (description, qty, unit price £, line total) with add / remove / reorder and a per-row include toggle; excluded rows grey/struck-through but retained. Subtotal, VAT, and total recompute in real time. VAT block hidden when the company isn't VAT-registered. Pounds accepted in inputs, converted to integer pence on save.
 
-## 8. Pricing calculator
-
-Inputs: hours on site, out-of-hours toggle, include call-out fee, materials cost, materials markup %. Uses Settings rates (editable on the same page; London-market seed defaults: £60 call-out, £110/h weekday, £140/h out-of-hours, £350 day rate, 15-min billing increments, 20% materials markup). Shows a labour/materials/VAT breakdown and a "Create invoice from this estimate" link that prefills `/invoices/new`.
-
-## 9. Deployment (Railway)
+## 8. Deployment (Railway)
 
 Dockerfile (not nixpacks): `node:24-bookworm-slim` build → runtime with `npx playwright install --with-deps chromium` baked in at build, non-root user, `PLAYWRIGHT_BROWSERS_PATH=/ms-playwright`. ≥1 GB RAM. `npx prisma migrate deploy` on release. Env vars: `DATABASE_URL`, `STARLING_PAT`, `STARLING_API_BASE`, `STARLING_WEBHOOK_SECRET`, `ADMIN_PASSWORD_HASH`, `SESSION_SECRET`.
 
-## 10. End-to-end verification checklist
+## 9. End-to-end verification checklist
 
 1. `npm run build` and `npm run typecheck` pass.
 2. Login works; wrong password 5× locks the IP out; protected routes redirect to `/login`.

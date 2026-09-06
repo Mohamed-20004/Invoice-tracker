@@ -4,7 +4,6 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { requireAuth } from "@/actions/guard";
-import { parsePoundsToPence } from "@/lib/money";
 
 function str(formData: FormData, key: string): string {
   return String(formData.get(key) ?? "").trim();
@@ -29,6 +28,7 @@ export async function updateCompanySettings(formData: FormData): Promise<void> {
       vatRatePercent: intOr(formData, "vatRatePercent", 20),
       contactEmail: str(formData, "contactEmail"),
       contactPhone: str(formData, "contactPhone"),
+      website: str(formData, "website"),
       bankAccountName: str(formData, "bankAccountName"),
       bankSortCode: str(formData, "bankSortCode"),
       bankAccountNumber: str(formData, "bankAccountNumber"),
@@ -37,21 +37,4 @@ export async function updateCompanySettings(formData: FormData): Promise<void> {
   });
   revalidatePath("/settings");
   redirect("/settings?saved=1");
-}
-
-export async function updatePricingSettings(formData: FormData): Promise<void> {
-  await requireAuth();
-  await prisma.settings.update({
-    where: { id: 1 },
-    data: {
-      calloutFeePence: parsePoundsToPence(str(formData, "calloutFee")),
-      hourlyRateWeekdayPence: parsePoundsToPence(str(formData, "hourlyRateWeekday")),
-      hourlyRateOutOfHoursPence: parsePoundsToPence(str(formData, "hourlyRateOutOfHours")),
-      dayRatePence: parsePoundsToPence(str(formData, "dayRate")),
-      billingIncrementMinutes: intOr(formData, "billingIncrementMinutes", 15),
-      materialsMarkupPercent: intOr(formData, "materialsMarkupPercent", 20),
-    },
-  });
-  revalidatePath("/pricing");
-  redirect("/pricing?saved=1");
 }

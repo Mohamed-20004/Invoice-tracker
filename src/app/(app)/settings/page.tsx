@@ -53,6 +53,10 @@ export default async function SettingsPage({
             <input name="contactPhone" defaultValue={settings.contactPhone} className={`mt-1 ${inputCls}`} />
           </label>
         </div>
+        <label className="block text-sm">
+          Website (shown in the invoice footer)
+          <input name="website" defaultValue={settings.website} className={`mt-1 ${inputCls}`} />
+        </label>
 
         <fieldset className="rounded-lg border border-slate-200 p-4">
           <legend className="px-1 text-sm font-semibold">VAT</legend>

@@ -1,11 +1,10 @@
 # Invoice Tracker
 
-A self-hosted business tool for a one-person UK plumbing limited company:
+A self-hosted business tool for HH Plumbing & Gas LTD:
 
 - **Invoice builder** — toggleable line items with live totals, VAT 20% (toggleable for non-VAT-registered companies), sequential HMRC-compliant numbering, customer records.
-- **PDF export** — A4 invoices rendered on demand with Playwright/Chromium; real selectable text, Companies Act footer, bank details, and a "quote INV-#### as your payment reference" instruction.
+- **PDF export** — A4 invoices rendered on demand with Playwright/Chromium in the company's branded template (black header band, yellow accents, logo, NOTES + PAYMENT DETAILS panels); real selectable text and a "quote INV-#### as your payment reference" instruction.
 - **Starling Bank auto-matching** — a signature-verified webhook receives incoming feed items, matches settled credits against invoice numbers (or fuzzily against job addresses) and marks invoices paid; anything ambiguous lands in a manual review queue. A "Sync from Starling" button backfills the last 90 days via the REST API.
-- **Pricing calculator** — job estimates from editable rates (call-out fee, weekday/out-of-hours hourly, materials markup, billing increments), with one click to turn an estimate into an invoice.
 - **Single-admin auth** — argon2id password hash, jose-signed HTTP-only session cookie, DB-backed login rate limiting (5 failures / 15 min lockout).
 
 Stack: Next.js 16 (App Router), React 19, Prisma 7 (Rust-free client + `@prisma/adapter-pg`), Tailwind CSS 4, PostgreSQL, Playwright. See `SPEC.md` for the full spec and `CLAUDE.md` for development conventions.
