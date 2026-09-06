@@ -45,4 +45,7 @@ EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME=0.0.0.0
 
-CMD ["node", "server.js"]
+# Apply any pending migrations, then start. migrate deploy is idempotent,
+# so re-running it on every boot is safe and removes the dependency on a
+# platform-level pre-deploy hook.
+CMD ["sh", "-c", "node node_modules/prisma/build/index.js migrate deploy && exec node server.js"]
