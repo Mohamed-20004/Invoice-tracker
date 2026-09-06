@@ -38,11 +38,11 @@ curl -X POST http://localhost:3000/api/webhooks/starling -H "Content-Type: appli
 
 ## Deploying to Railway
 
-Uses the committed `Dockerfile` (Chromium and its system libraries are baked in at build time; the container runs as a non-root user).
+Uses the committed `Dockerfile` (Chromium and its system libraries are baked in at build time; the container runs as a non-root user). The committed `railway.json` auto-configures the Dockerfile build, runs `prisma migrate deploy` as the pre-deploy command, and health-checks `/login` — no manual build/deploy settings needed.
 
-1. Create a Railway project with a PostgreSQL database; point the service at this repo and it will pick up the Dockerfile.
+1. Create a Railway project with a PostgreSQL database; add a service from this repo (it picks up the Dockerfile + railway.json automatically).
 2. Give the service **≥ 1 GB RAM** (Chromium needs it).
-3. Set the environment variables from `.env.example` (`DATABASE_URL` comes from the Railway Postgres plugin).
-4. Set the release command to `npx prisma migrate deploy`.
+3. Set the environment variables from `.env.example` — set `DATABASE_URL` to `${{Postgres.DATABASE_URL}}` to reference the Railway Postgres service.
+4. Generate a domain for the service (Settings → Networking) and log in at `/login`.
 
 PDFs are regenerated from live data on every download — nothing is stored on the ephemeral filesystem. If you later need immutable copies of issued invoices (e.g. for an HMRC audit trail), add object storage (Cloudflare R2) and persist on "mark as sent".
