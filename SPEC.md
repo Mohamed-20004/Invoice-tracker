@@ -1,0 +1,78 @@
+# SPEC — UK Plumbing Ltd Business Tool
+
+A self-hosted business tool for a one-person London plumbing limited company: build HMRC-compliant invoices, export them as PDFs, auto-mark them paid from incoming Starling Bank transfers, and quote jobs with an editable pricing calculator.
+
+## 1. Overview & non-goals
+
+**In scope:** single-admin login; customer + invoice CRUD with a toggleable line-item builder; sequential invoice numbering; VAT (20%, toggleable for non-VAT-registered); A4 PDF export via Playwright/Chromium; Starling feed-item webhook receiver with signature verification, payment auto-matching, and a manual review queue; a payments backfill/sync via the Starling REST API; a pricing calculator seeded with editable London-market defaults; Railway deployment via Dockerfile.
+
+**Non-goals:** multi-user auth or roles; Making Tax Digital / HMRC filing; emailing invoices; stored/immutable PDF archives (regenerate on demand — revisit if audit copies are required); payments out / expenses; multi-currency (GBP only); mobile app.
+
+## 2. Data model (Prisma, PostgreSQL)
+
+- **Settings** (single row, id=1): registered company name, company number, registered office address, place of registration, VAT-registered flag + VAT number, contact email/phone, bank account name / sort code / account number, payment terms days, VAT rate %, `nextInvoiceNumber`, pricing defaults (call-out fee, weekday hourly rate, out-of-hours hourly rate, day rate, billing increment minutes, materials markup %) — all money in pence.
+- **Customer**: name, email?, phone?, address lines.
+- **Invoice**: sequential `number` (unique int), status `DRAFT | SENT | PAID | VOID`, customer relation, `jobAddress` (used for payment matching), issue/due/supply dates, snapshot of VAT registration + rate, notes; has many LineItems and Payments.
+- **LineItem**: position, description, quantity (float, e.g. 1.5 h), `unitPricePence`, `included` flag (excluded rows are kept but don't count).
+- **Payment**: `feedItemUid` (unique — idempotency key), amountPence, currency, reference, counterparty name, status, source, transactionTime, `matchStatus` `MATCHED | UNMATCHED | MANUAL | IGNORED`, optional invoice relation, raw JSON.
+- **LoginAttempt**: ip, success, createdAt — drives the login rate limiter.
+
+## 3. Routes
+
+| Route | Purpose |
+|---|---|
+| `/login` | password form (rate-limited) |
+| `/` | dashboard: outstanding, paid-this-month, review-queue count, recent invoices |
+| `/invoices`, `/invoices/new`, `/invoices/[id]` | list, builder, detail (with edit + PDF link) |
+| `/customers` | customer list + create/edit |
+| `/pricing` | job cost calculator + editable rate config |
+| `/payments` | payment feed + "Sync from Starling" backfill |
+| `/review-queue` | unmatched payments → assign to invoice or ignore |
+| `/settings` | company / VAT / bank details |
+| `/api/invoices/[id]/pdf` | streams a freshly rendered PDF |
+| `/api/webhooks/starling` | Starling feed-item webhook (no auth middleware; signature-verified) |
+
+## 4. Auth
+
+- One admin. Password stored as an argon2id hash in `ADMIN_PASSWORD_HASH`.
+- Session: jose HS256 JWT in an HTTP-only cookie (`Secure`, `SameSite=Lax`, path `/`, 8 h expiry), signed with `SESSION_SECRET`.
+- `middleware.ts` redirects unauthenticated requests to `/login` for everything except `/login`, `/api/webhooks/starling`, and Next static assets.
+- Rate limit: DB-backed — max 5 failed attempts per IP per 15 minutes, then locked out until the window clears.
+
+## 5. Starling integration
+
+- **No SDK** — direct `fetch` against the v2 REST API with `Bearer ${STARLING_PAT}`. Base URL from `STARLING_API_BASE` (production `https://api.starlingbank.com`, sandbox `https://api-sandbox.starlingbank.com`).
+- **Webhook envelope**: `{ webhookEventUid, eventTimestamp, accountHolderUid, content: { …feed item… } }`. Verify `X-Hook-Signature` = `Base64(SHA-512(STARLING_WEBHOOK_SECRET + rawBody))` over the raw request bytes with a constant-time compare. Respond 200 within 2 s; Starling retries with backoff for ~2 h otherwise.
+- **Idempotency**: upsert `Payment` on `feedItemUid`; replays are no-ops.
+- **Matching** (only `direction === "IN"` and `status === "SETTLED"`):
+  1. Regex `/INV[-\s]?0*(\d+)/i` on `reference` → invoice by number, unpaid, amount equals outstanding total → **match**, mark PAID.
+  2. Else fuzzy match reference tokens against `jobAddress` of unpaid invoices with the exact amount → **match**.
+  3. Else → `UNMATCHED`, lands in the review queue for manual assignment or ignore.
+- **Backfill**: fetch accounts → default category → settled feed items since a given date, run each through the same matcher.
+
+## 6. PDF export
+
+- Invoice rendered to a self-contained HTML string (inline print CSS, `@page { size: A4 }`, mm units, `break-inside: avoid` on totals, real selectable text) and printed with Playwright `page.pdf({ format: 'A4', printBackground: true })` inside the API route.
+- Regenerated on demand; nothing persisted.
+- Template: logo/company block left, invoice meta right; Bill To; semantic line-item table; subtotal / VAT 20% / total block; footer with bank details and *"Please quote INV-#### as your payment reference"* (this drives auto-matching). Company number, registered office, and place of registration in the footer (Companies Act 2006); VAT number shown only when VAT-registered.
+
+## 7. Invoice builder UI
+
+Client component: rows (description, qty, unit price £, line total) with add / remove / reorder and a per-row include toggle; excluded rows grey/struck-through but retained. Subtotal, VAT, and total recompute in real time. VAT block hidden when the company isn't VAT-registered. Pounds accepted in inputs, converted to integer pence on save.
+
+## 8. Pricing calculator
+
+Inputs: hours on site, out-of-hours toggle, include call-out fee, materials cost, materials markup %. Uses Settings rates (editable on the same page; London-market seed defaults: £60 call-out, £110/h weekday, £140/h out-of-hours, £350 day rate, 15-min billing increments, 20% materials markup). Shows a labour/materials/VAT breakdown and a "Create invoice from this estimate" link that prefills `/invoices/new`.
+
+## 9. Deployment (Railway)
+
+Dockerfile (not nixpacks): `node:24-bookworm-slim` build → runtime with `npx playwright install --with-deps chromium` baked in at build, non-root user, `PLAYWRIGHT_BROWSERS_PATH=/ms-playwright`. ≥1 GB RAM. `npx prisma migrate deploy` on release. Env vars: `DATABASE_URL`, `STARLING_PAT`, `STARLING_API_BASE`, `STARLING_WEBHOOK_SECRET`, `ADMIN_PASSWORD_HASH`, `SESSION_SECRET`.
+
+## 10. End-to-end verification checklist
+
+1. `npm run build` and `npm run typecheck` pass.
+2. Login works; wrong password 5× locks the IP out; protected routes redirect to `/login`.
+3. Create an invoice → toggle a line item off → totals update live → save → number is sequential.
+4. `GET /api/invoices/[id]/pdf` returns a valid A4 PDF with selectable text (`npm run pdf-smoke` covers the render path headlessly).
+5. POST a simulated Starling webhook with a valid signature and `reference: "INV-0001"` → invoice auto-marked PAID; replay is a no-op; bad signature → 401.
+6. POST one with an unknown reference → appears in the review queue → manual assign marks the invoice paid.

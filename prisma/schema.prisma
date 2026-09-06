@@ -1,0 +1,119 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Settings {
+  id                       Int     @id @default(1)
+  companyName              String  @default("Your Plumbing Ltd")
+  companyNumber            String  @default("")
+  registeredAddress        String  @default("")
+  placeOfRegistration      String  @default("England and Wales")
+  vatRegistered            Boolean @default(false)
+  vatNumber                String  @default("")
+  vatRatePercent           Int     @default(20)
+  contactEmail             String  @default("")
+  contactPhone             String  @default("")
+  bankAccountName          String  @default("")
+  bankSortCode             String  @default("")
+  bankAccountNumber        String  @default("")
+  paymentTermsDays         Int     @default(14)
+  nextInvoiceNumber        Int     @default(1)
+  // Pricing defaults — editable London-market seed values, all money in pence
+  calloutFeePence          Int     @default(6000)
+  hourlyRateWeekdayPence   Int     @default(11000)
+  hourlyRateOutOfHoursPence Int    @default(14000)
+  dayRatePence             Int     @default(35000)
+  billingIncrementMinutes  Int     @default(15)
+  materialsMarkupPercent   Int     @default(20)
+}
+
+model Customer {
+  id           String    @id @default(cuid())
+  name         String
+  email        String?
+  phone        String?
+  addressLine1 String    @default("")
+  addressLine2 String?
+  city         String?
+  postcode     String?
+  invoices     Invoice[]
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+}
+
+enum InvoiceStatus {
+  DRAFT
+  SENT
+  PAID
+  VOID
+}
+
+model Invoice {
+  id             String        @id @default(cuid())
+  number         Int           @unique
+  status         InvoiceStatus @default(DRAFT)
+  customerId     String
+  customer       Customer      @relation(fields: [customerId], references: [id])
+  jobAddress     String?
+  issueDate      DateTime      @default(now())
+  dueDate        DateTime?
+  supplyDate     DateTime?
+  vatRegistered  Boolean       @default(false)
+  vatRatePercent Int           @default(20)
+  notes          String?
+  lineItems      LineItem[]
+  payments       Payment[]
+  paidAt         DateTime?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+}
+
+model LineItem {
+  id             String  @id @default(cuid())
+  invoiceId      String
+  invoice        Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  position       Int     @default(0)
+  description    String
+  quantity       Float   @default(1)
+  unitPricePence Int     @default(0)
+  included       Boolean @default(true)
+}
+
+enum MatchStatus {
+  MATCHED
+  UNMATCHED
+  MANUAL
+  IGNORED
+}
+
+model Payment {
+  id                String      @id @default(cuid())
+  feedItemUid       String      @unique
+  amountPence       Int
+  currency          String      @default("GBP")
+  reference         String?
+  counterPartyName  String?
+  status            String
+  source            String?
+  transactionTime   DateTime
+  matchStatus       MatchStatus @default(UNMATCHED)
+  invoiceId         String?
+  invoice           Invoice?    @relation(fields: [invoiceId], references: [id])
+  rawJson           Json?
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+}
+
+model LoginAttempt {
+  id        String   @id @default(cuid())
+  ip        String
+  success   Boolean
+  createdAt DateTime @default(now())
+
+  @@index([ip, createdAt])
+}
