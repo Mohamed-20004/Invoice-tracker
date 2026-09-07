@@ -2,6 +2,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { computeTotals, formatPence, invoiceNumberLabel } from "@/lib/money";
 import { StatusBadge } from "@/components/status-badge";
+import { DeleteInvoiceButton } from "@/components/delete-invoice-button";
 
 export default async function InvoicesPage() {
   const invoices = await prisma.invoice.findMany({
@@ -30,12 +31,13 @@ export default async function InvoicesPage() {
               <th className="px-4 py-3">Due</th>
               <th className="px-4 py-3">Status</th>
               <th className="px-4 py-3 text-right">Total</th>
+              <th className="px-2 py-3"></th>
             </tr>
           </thead>
           <tbody>
             {invoices.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-4 py-6 text-center text-slate-400">
+                <td colSpan={7} className="px-4 py-6 text-center text-slate-400">
                   No invoices yet.
                 </td>
               </tr>
@@ -55,6 +57,12 @@ export default async function InvoicesPage() {
                   {formatPence(
                     computeTotals(inv.lineItems, inv.vatRegistered, inv.vatRatePercent).totalPence
                   )}
+                </td>
+                <td className="px-2 py-3 text-right">
+                  <DeleteInvoiceButton
+                    invoiceId={inv.id}
+                    label={invoiceNumberLabel(inv.number)}
+                  />
                 </td>
               </tr>
             ))}

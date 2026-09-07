@@ -114,6 +114,16 @@ export async function updateInvoice(
   redirect(`/invoices/${invoiceId}`);
 }
 
+export async function deleteInvoice(invoiceId: string): Promise<void> {
+  await requireAuth();
+  // Line items cascade; linked payments are kept but unlinked (SET NULL),
+  // so bank records survive the delete.
+  await prisma.invoice.delete({ where: { id: invoiceId } });
+  revalidatePath("/invoices");
+  revalidatePath("/");
+  redirect("/invoices");
+}
+
 export async function setInvoiceStatus(
   invoiceId: string,
   status: "DRAFT" | "SENT" | "PAID" | "VOID"
