@@ -6,7 +6,12 @@ import { chromium } from "playwright";
 export async function htmlToPdf(html: string): Promise<Uint8Array> {
   const browser = await chromium.launch({
     executablePath: process.env.CHROMIUM_EXECUTABLE_PATH || undefined,
-    args: ["--no-sandbox", "--disable-dev-shm-usage"],
+    args: [
+      "--no-sandbox",
+      "--disable-dev-shm-usage",
+      "--disable-gpu",
+      "--no-zygote",
+    ],
   });
   try {
     const page = await browser.newPage();

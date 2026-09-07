@@ -2,7 +2,7 @@
 
 A self-hosted business tool for HH Plumbing & Gas LTD:
 
-- **Invoice builder** — toggleable line items with live totals, VAT 20% (toggleable for non-VAT-registered companies), sequential HMRC-compliant numbering, customer records.
+- **Invoice builder** — a live on-screen replica of the invoice template: customer details typed directly on the invoice, toggleable line items with live totals, VAT 20% (toggleable for non-VAT-registered companies), sequential HMRC-compliant numbering.
 - **PDF export** — A4 invoices rendered on demand with Playwright/Chromium in the company's branded template (black header band, yellow accents, logo, NOTES + PAYMENT DETAILS panels); real selectable text and a "quote INV-#### as your payment reference" instruction.
 - **Starling Bank auto-matching** — a signature-verified webhook receives incoming feed items, matches settled credits against invoice numbers (or fuzzily against job addresses) and marks invoices paid; anything ambiguous lands in a manual review queue. A "Sync from Starling" button backfills the last 90 days via the REST API.
 - **Single-admin auth** — argon2id password hash, jose-signed HTTP-only session cookie, DB-backed login rate limiting (5 failures / 15 min lockout).

@@ -13,7 +13,7 @@ export default async function DashboardPage() {
     prisma.invoice.findMany({
       orderBy: { createdAt: "desc" },
       take: 8,
-      include: { customer: true, lineItems: true },
+      include: { lineItems: true },
     }),
     prisma.payment.aggregate({
       _sum: { amountPence: true },
@@ -93,7 +93,7 @@ export default async function DashboardPage() {
                       {invoiceNumberLabel(inv.number)}
                     </Link>
                   </td>
-                  <td className="px-4 py-3">{inv.customer.name}</td>
+                  <td className="px-4 py-3">{inv.customerName}</td>
                   <td className="px-4 py-3"><StatusBadge status={inv.status} /></td>
                   <td className="px-4 py-3 text-right font-medium">
                     {formatPence(

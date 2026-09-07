@@ -13,10 +13,12 @@ export interface LineItemInput {
 }
 
 export interface InvoicePayload {
-  customerId: string;
+  customerName: string;
+  customerAddress: string; // multiline
+  customerEmail: string;
+  customerPhone: string;
   jobAddress: string;
   notes: string;
-  supplyDate: string; // yyyy-mm-dd or ""
   lineItems: LineItemInput[];
 }
 
@@ -31,11 +33,27 @@ function cleanItems(items: LineItemInput[]): LineItemInput[] {
     }));
 }
 
+function customerData(payload: InvoicePayload) {
+  return {
+    customerName: payload.customerName.trim().slice(0, 200),
+    customerAddress: payload.customerAddress
+      .split("\n")
+      .map((l) => l.trim())
+      .filter(Boolean)
+      .slice(0, 8)
+      .join("\n"),
+    customerEmail: payload.customerEmail.trim() || null,
+    customerPhone: payload.customerPhone.trim() || null,
+    jobAddress: payload.jobAddress.trim() || null,
+    notes: payload.notes.trim() || null,
+  };
+}
+
 export async function createInvoice(payload: InvoicePayload): Promise<void> {
   await requireAuth();
   const items = cleanItems(payload.lineItems);
-  if (!payload.customerId || items.length === 0) {
-    throw new Error("An invoice needs a customer and at least one line item.");
+  if (!payload.customerName.trim() || items.length === 0) {
+    throw new Error("An invoice needs a customer name and at least one line item.");
   }
   const settings = await getSettings();
 
@@ -54,12 +72,9 @@ export async function createInvoice(payload: InvoicePayload): Promise<void> {
     const invoice = await tx.invoice.create({
       data: {
         number,
-        customerId: payload.customerId,
-        jobAddress: payload.jobAddress.trim() || null,
-        notes: payload.notes.trim() || null,
+        ...customerData(payload),
         issueDate,
         dueDate,
-        supplyDate: payload.supplyDate ? new Date(payload.supplyDate) : null,
         vatRegistered: settings.vatRegistered,
         vatRatePercent: settings.vatRatePercent,
         lineItems: {
@@ -80,18 +95,15 @@ export async function updateInvoice(
 ): Promise<void> {
   await requireAuth();
   const items = cleanItems(payload.lineItems);
-  if (items.length === 0) {
-    throw new Error("An invoice needs at least one line item.");
+  if (!payload.customerName.trim() || items.length === 0) {
+    throw new Error("An invoice needs a customer name and at least one line item.");
   }
   await prisma.$transaction(async (tx) => {
     await tx.lineItem.deleteMany({ where: { invoiceId } });
     await tx.invoice.update({
       where: { id: invoiceId },
       data: {
-        customerId: payload.customerId,
-        jobAddress: payload.jobAddress.trim() || null,
-        notes: payload.notes.trim() || null,
-        supplyDate: payload.supplyDate ? new Date(payload.supplyDate) : null,
+        ...customerData(payload),
         lineItems: {
           create: items.map((item, position) => ({ ...item, position })),
         },

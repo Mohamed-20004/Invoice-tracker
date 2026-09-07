@@ -11,7 +11,7 @@ export default async function ReviewQueuePage() {
     prisma.invoice.findMany({
       where: { status: { in: ["DRAFT", "SENT"] } },
       orderBy: { number: "desc" },
-      include: { customer: true, lineItems: true },
+      include: { lineItems: true },
     }),
   ]);
 
@@ -77,7 +77,7 @@ export default async function ReviewQueuePage() {
                   ).totalPence;
                   return (
                     <option key={inv.id} value={inv.id}>
-                      {invoiceNumberLabel(inv.number)} — {inv.customer.name} —{" "}
+                      {invoiceNumberLabel(inv.number)} — {inv.customerName} —{" "}
                       {formatPence(total)}
                       {total === p.amountPence ? " (amount matches)" : ""}
                     </option>

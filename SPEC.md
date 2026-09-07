@@ -11,8 +11,7 @@ A self-hosted business tool for HH Plumbing & Gas LTD (a one-person London plumb
 ## 2. Data model (Prisma, PostgreSQL)
 
 - **Settings** (single row, id=1): registered company name, company number, registered office address, place of registration, VAT-registered flag + VAT number, contact email/phone, website, bank account name / sort code / account number, payment terms days, VAT rate %, `nextInvoiceNumber`. Seeded with the company's real details from its invoice template (numbering continues from INV-0059).
-- **Customer**: name, email?, phone?, address lines.
-- **Invoice**: sequential `number` (unique int), status `DRAFT | SENT | PAID | VOID`, customer relation, `jobAddress` (used for payment matching), issue/due/supply dates, snapshot of VAT registration + rate, notes; has many LineItems and Payments.
+- **Invoice**: sequential `number` (unique int), status `DRAFT | SENT | PAID | VOID`, inline customer details (`customerName`, multiline `customerAddress`, `customerEmail?`, `customerPhone?` — no separate customer records), `jobAddress` (used for payment matching), issue/due dates, snapshot of VAT registration + rate, notes; has many LineItems and Payments.
 - **LineItem**: position, description, quantity (float, e.g. 1.5 h), `unitPricePence`, `included` flag (excluded rows are kept but don't count).
 - **Payment**: `feedItemUid` (unique — idempotency key), amountPence, currency, reference, counterparty name, status, source, transactionTime, `matchStatus` `MATCHED | UNMATCHED | MANUAL | IGNORED`, optional invoice relation, raw JSON.
 - **LoginAttempt**: ip, success, createdAt — drives the login rate limiter.
@@ -23,8 +22,7 @@ A self-hosted business tool for HH Plumbing & Gas LTD (a one-person London plumb
 |---|---|
 | `/login` | password form (rate-limited) |
 | `/` | dashboard: outstanding, paid-this-month, review-queue count, recent invoices |
-| `/invoices`, `/invoices/new`, `/invoices/[id]` | list, builder, detail (with edit + PDF link) |
-| `/customers` | customer list + create/edit |
+| `/invoices`, `/invoices/new`, `/invoices/[id]` | list, WYSIWYG builder (a live replica of the invoice template with fields edited in place), detail (with edit + PDF link) |
 | `/payments` | payment feed + "Sync from Starling" backfill |
 | `/review-queue` | unmatched payments → assign to invoice or ignore |
 | `/settings` | company / VAT / bank details |
@@ -57,7 +55,7 @@ A self-hosted business tool for HH Plumbing & Gas LTD (a one-person London plumb
 
 ## 7. Invoice builder UI
 
-Client component: rows (description, qty, unit price £, line total) with add / remove / reorder and a per-row include toggle; excluded rows grey/struck-through but retained. Subtotal, VAT, and total recompute in real time. VAT block hidden when the company isn't VAT-registered. Pounds accepted in inputs, converted to integer pence on save.
+The builder renders as a live replica of the invoice template (black header band, yellow accents) with fields edited seamlessly in place: customer name/address/email/phone typed directly on the invoice (no separate customer records), site address, and line-item rows (description, unit price £, qty) with add / remove / reorder and a per-row include toggle; excluded rows grey/struck-through but retained. Subtotal, VAT, and total recompute in real time. VAT block hidden when the company isn't VAT-registered. Pounds accepted in inputs, converted to integer pence on save.
 
 ## 8. Deployment (Railway)
 

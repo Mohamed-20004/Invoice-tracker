@@ -6,7 +6,7 @@ import { StatusBadge } from "@/components/status-badge";
 export default async function InvoicesPage() {
   const invoices = await prisma.invoice.findMany({
     orderBy: { number: "desc" },
-    include: { customer: true, lineItems: true },
+    include: { lineItems: true },
   });
 
   return (
@@ -47,7 +47,7 @@ export default async function InvoicesPage() {
                     {invoiceNumberLabel(inv.number)}
                   </Link>
                 </td>
-                <td className="px-4 py-3">{inv.customer.name}</td>
+                <td className="px-4 py-3">{inv.customerName}</td>
                 <td className="px-4 py-3">{inv.issueDate.toLocaleDateString("en-GB")}</td>
                 <td className="px-4 py-3">{inv.dueDate?.toLocaleDateString("en-GB") ?? "—"}</td>
                 <td className="px-4 py-3"><StatusBadge status={inv.status} /></td>

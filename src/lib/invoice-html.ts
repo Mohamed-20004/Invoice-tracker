@@ -1,9 +1,9 @@
 import fs from "node:fs";
 import path from "node:path";
 import { computeTotals, formatPence, invoiceNumberLabel, lineTotalPence } from "@/lib/money";
-import type { Settings, Customer, Invoice, LineItem } from "@/generated/prisma/client";
+import type { Settings, Invoice, LineItem } from "@/generated/prisma/client";
 
-type FullInvoice = Invoice & { customer: Customer; lineItems: LineItem[] };
+type FullInvoice = Invoice & { lineItems: LineItem[] };
 
 // Brand palette lifted from the HH Plumbing & Gas Word template.
 const YELLOW = "#FFCE07";
@@ -48,18 +48,16 @@ export function renderInvoiceHtml(invoice: FullInvoice, settings: Settings): str
     .filter((i) => i.included);
   const totals = computeTotals(items, invoice.vatRegistered, invoice.vatRatePercent);
   const numberLabel = invoiceNumberLabel(invoice.number);
-  const customer = invoice.customer;
   const logo = logoDataUri();
   const exclVat = invoice.vatRegistered ? " (excl. VAT)" : "";
 
   const customerLines = [
-    customer.addressLine1,
-    customer.addressLine2,
-    customer.city,
-    customer.postcode,
-    customer.email,
+    ...invoice.customerAddress.split("\n"),
+    invoice.customerEmail ?? "",
+    invoice.customerPhone ?? "",
   ]
-    .filter((part): part is string => Boolean(part && part.trim()))
+    .map((line) => line.trim())
+    .filter(Boolean)
     .map((line) => `<p>${esc(line)}</p>`)
     .join("");
 
@@ -213,7 +211,7 @@ export function renderInvoiceHtml(invoice: FullInvoice, settings: Settings): str
   <div class="addresses">
     <div class="col">
       <p class="caps-label">Bill To</p>
-      <p class="who">${esc(customer.name)}</p>
+      <p class="who">${esc(invoice.customerName)}</p>
       ${customerLines}
     </div>
     <div class="col">

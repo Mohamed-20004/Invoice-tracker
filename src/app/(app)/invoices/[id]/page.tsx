@@ -19,7 +19,6 @@ export default async function InvoiceDetailPage({
   const invoice = await prisma.invoice.findUnique({
     where: { id },
     include: {
-      customer: true,
       lineItems: { orderBy: { position: "asc" } },
       payments: true,
     },
@@ -69,10 +68,12 @@ export default async function InvoiceDetailPage({
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="rounded-xl bg-white p-5 shadow-sm text-sm">
           <h2 className="mb-2 text-xs font-semibold uppercase text-slate-500">Bill to</h2>
-          <p className="font-medium">{invoice.customer.name}</p>
-          {invoice.customer.addressLine1 && <p>{invoice.customer.addressLine1}</p>}
-          {invoice.customer.addressLine2 && <p>{invoice.customer.addressLine2}</p>}
-          <p>{[invoice.customer.city, invoice.customer.postcode].filter(Boolean).join(" ")}</p>
+          <p className="font-medium">{invoice.customerName}</p>
+          {invoice.customerAddress.split("\n").filter(Boolean).map((line) => (
+            <p key={line}>{line}</p>
+          ))}
+          {invoice.customerEmail && <p>{invoice.customerEmail}</p>}
+          {invoice.customerPhone && <p>{invoice.customerPhone}</p>}
           {invoice.jobAddress && (
             <p className="mt-2 text-slate-500">Job address: {invoice.jobAddress}</p>
           )}
