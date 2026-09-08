@@ -66,7 +66,7 @@ export default async function ReviewQueuePage() {
               <select
                 name="invoiceId"
                 required
-                className="rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-brand-600 focus:outline-none"
+                className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-brand-600 focus:outline-none sm:w-auto"
               >
                 <option value="">Assign to invoice…</option>
                 {openInvoices.map((inv) => {

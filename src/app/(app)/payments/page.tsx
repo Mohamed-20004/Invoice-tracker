@@ -39,8 +39,8 @@ export default async function PaymentsPage() {
           <thead>
             <tr className="border-b border-slate-200 text-left text-xs uppercase text-slate-500">
               <th className="px-4 py-3">Date</th>
-              <th className="px-4 py-3">From</th>
-              <th className="px-4 py-3">Reference</th>
+              <th className="hidden px-4 py-3 md:table-cell">From</th>
+              <th className="hidden px-4 py-3 md:table-cell">Reference</th>
               <th className="px-4 py-3">Match</th>
               <th className="px-4 py-3">Invoice</th>
               <th className="px-4 py-3 text-right">Amount</th>
@@ -57,8 +57,8 @@ export default async function PaymentsPage() {
             {payments.map((p) => (
               <tr key={p.id} className="border-b border-slate-100 last:border-0">
                 <td className="px-4 py-3">{p.transactionTime.toLocaleDateString("en-GB")}</td>
-                <td className="px-4 py-3">{p.counterPartyName ?? "—"}</td>
-                <td className="px-4 py-3 text-slate-500">{p.reference ?? "—"}</td>
+                <td className="hidden px-4 py-3 md:table-cell">{p.counterPartyName ?? "—"}</td>
+                <td className="hidden px-4 py-3 text-slate-500 md:table-cell">{p.reference ?? "—"}</td>
                 <td className="px-4 py-3"><StatusBadge status={p.matchStatus} /></td>
                 <td className="px-4 py-3">
                   {p.invoice ? (

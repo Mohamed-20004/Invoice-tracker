@@ -132,32 +132,32 @@ export function InvoiceBuilder({
     <form onSubmit={handleSubmit}>
       {/* The invoice sheet — a live replica of the PDF template */}
       <div className="mx-auto max-w-3xl bg-white shadow-md" style={{ fontFamily: "Arial, sans-serif" }}>
-        <div className="p-6 sm:p-8">
+        <div className="p-3 sm:p-8">
           {/* Header band */}
-          <div className="flex items-center gap-6 bg-black p-5 text-white">
+          <div className="flex flex-wrap items-center gap-3 bg-black p-4 text-white sm:gap-6 sm:p-5">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logo.png" alt="" className="w-16 sm:w-20" />
-            <div className="flex-1 min-w-0">
-              <p className="text-base sm:text-lg font-bold">{ctx.companyName}</p>
-              <p className="text-xs text-[#ADADAD]">{ctx.registeredAddress}</p>
-              <p className="text-xs text-[#ADADAD]">
+            <img src="/logo.png" alt="" className="w-12 sm:w-20" />
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-bold sm:text-lg">{ctx.companyName}</p>
+              <p className="text-[10px] text-[#ADADAD] sm:text-xs">{ctx.registeredAddress}</p>
+              <p className="text-[10px] text-[#ADADAD] sm:text-xs">
                 {[ctx.contactEmail, ctx.contactPhone].filter(Boolean).join("  |  ")}
               </p>
               {ctx.vatRegistered && ctx.vatNumber && (
-                <p className="text-xs text-[#ADADAD]">VAT No: {ctx.vatNumber}</p>
+                <p className="text-[10px] text-[#ADADAD] sm:text-xs">VAT No: {ctx.vatNumber}</p>
               )}
             </div>
             <div className="text-right">
-              <p className="text-3xl sm:text-5xl font-bold leading-none" style={{ color: YELLOW }}>
+              <p className="text-2xl font-bold leading-none sm:text-5xl" style={{ color: YELLOW }}>
                 INVOICE
               </p>
-              <p className="mt-1 text-sm text-[#AAAAAA]"># {ctx.numberLabel}</p>
+              <p className="mt-1 text-xs text-[#AAAAAA] sm:text-sm"># {ctx.numberLabel}</p>
             </div>
           </div>
-          <div className="mb-8 h-3" style={{ background: YELLOW }} />
+          <div className="mb-6 h-3 sm:mb-8" style={{ background: YELLOW }} />
 
           {/* Dates */}
-          <div className="mb-9 flex w-3/4 gap-4 bg-[#F5F5F5] px-4 py-3">
+          <div className="mb-6 flex w-full gap-4 bg-[#F5F5F5] px-4 py-3 sm:mb-9 sm:w-3/4">
             <div className="flex-1">
               <p className="text-xs text-[#555555]">Invoice Date</p>
               <p className="font-bold">{ctx.issueDateLabel}</p>
@@ -217,8 +217,9 @@ export function InvoiceBuilder({
             </div>
           </div>
 
-          {/* Line items */}
-          <table className="w-full border-collapse text-sm">
+          {/* Line items — scrolls sideways on phones rather than squashing */}
+          <div className="-mx-3 overflow-x-auto px-3 sm:mx-0 sm:px-0 [-webkit-overflow-scrolling:touch]">
+          <table className="w-full min-w-[560px] border-collapse text-sm">
             <thead>
               <tr className="bg-black text-left text-white">
                 <th className="px-3 py-2.5 font-bold">Description</th>
@@ -288,6 +289,7 @@ export function InvoiceBuilder({
               })}
             </tbody>
           </table>
+          </div>
           <button
             type="button"
             onClick={() => setRows((prev) => [...prev, emptyRow()])}

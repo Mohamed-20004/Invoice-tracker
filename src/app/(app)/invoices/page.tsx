@@ -25,12 +25,12 @@ export default async function InvoicesPage() {
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-slate-200 text-left text-xs uppercase text-slate-500">
-              <th className="px-4 py-3">Number</th>
-              <th className="px-4 py-3">Customer</th>
-              <th className="px-4 py-3">Issued</th>
-              <th className="px-4 py-3">Due</th>
-              <th className="px-4 py-3">Status</th>
-              <th className="px-4 py-3 text-right">Total</th>
+              <th className="px-2 py-3 sm:px-4">Number</th>
+              <th className="px-2 py-3 sm:px-4">Customer</th>
+              <th className="hidden px-4 py-3 md:table-cell">Issued</th>
+              <th className="hidden px-4 py-3 md:table-cell">Due</th>
+              <th className="px-2 py-3 sm:px-4">Status</th>
+              <th className="px-2 py-3 sm:px-4 text-right">Total</th>
               <th className="px-2 py-3"></th>
             </tr>
           </thead>
@@ -44,16 +44,16 @@ export default async function InvoicesPage() {
             )}
             {invoices.map((inv) => (
               <tr key={inv.id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50">
-                <td className="px-4 py-3">
+                <td className="px-2 py-3 sm:px-4">
                   <Link href={`/invoices/${inv.id}`} className="font-medium text-brand-700 hover:underline">
                     {invoiceNumberLabel(inv.number)}
                   </Link>
                 </td>
-                <td className="px-4 py-3">{inv.customerName}</td>
-                <td className="px-4 py-3">{inv.issueDate.toLocaleDateString("en-GB")}</td>
-                <td className="px-4 py-3">{inv.dueDate?.toLocaleDateString("en-GB") ?? "—"}</td>
-                <td className="px-4 py-3"><StatusBadge status={inv.status} /></td>
-                <td className="px-4 py-3 text-right font-medium">
+                <td className="px-2 py-3 sm:px-4">{inv.customerName}</td>
+                <td className="hidden px-4 py-3 md:table-cell">{inv.issueDate.toLocaleDateString("en-GB")}</td>
+                <td className="hidden px-4 py-3 md:table-cell">{inv.dueDate?.toLocaleDateString("en-GB") ?? "—"}</td>
+                <td className="px-2 py-3 sm:px-4"><StatusBadge status={inv.status} /></td>
+                <td className="px-2 py-3 sm:px-4 text-right font-medium">
                   {formatPence(
                     computeTotals(inv.lineItems, inv.vatRegistered, inv.vatRatePercent).totalPence
                   )}

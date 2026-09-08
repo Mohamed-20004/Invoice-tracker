@@ -32,10 +32,11 @@ export function DeleteInvoiceButton({
       type="button"
       onClick={handleClick}
       disabled={pending}
-      className="rounded px-2 py-1 text-xs font-medium text-slate-400 hover:bg-red-50 hover:text-red-600 disabled:opacity-40"
+      className="rounded px-2 py-1.5 text-xs font-medium text-slate-400 hover:bg-red-50 hover:text-red-600 disabled:opacity-40"
       aria-label={`Delete ${label}`}
     >
-      {pending ? "Deleting…" : "Delete"}
+      <span className="sm:hidden" aria-hidden>{pending ? "…" : "✕"}</span>
+      <span className="hidden sm:inline">{pending ? "Deleting…" : "Delete"}</span>
     </button>
   );
 }
